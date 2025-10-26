@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+interface IERC20 {
+    function balanceOf(address account) external view returns (uint256);
+}
+
+interface ILunarOracle {
+    function getCurrentPhase() external view returns (string memory);
+}
+
+contract MoonPhaseUnlock {
+    address public owner;
+    address public gamingToken;
+    address public lunarOracle;
+    mapping(string => bool) public unlockedPhases;
+
+    event UnlockTriggered(string phase, address indexed by);
+
+    constructor(address _token, address _oracle) {
+        owner = msg.sender;
+        gamingToken = _token;
+        lunarOracle = _oracle;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not authorized");
+        _;
+    }
+
+    function triggerUnlock() external {
+        string memory phase = ILunarOracle(lunarOracle).getCurrentPhase();
+        require(!unlockedPhases[phase], "Already unlocked");
+
+        uint256 balance = IERC20(gamingToken).balanceOf(msg.sender);
+        require(balance > 0, "No GamingToken held");
+
+        unlockedPhases[phase] = true;
+        emit UnlockTriggered(phase, msg.sender);
+    }
+
+    function isUnlocked(string memory phase) external view returns (bool) {
+        return unlockedPhases[phase];
+    }
+}
