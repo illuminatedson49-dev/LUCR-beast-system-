@@ -1,0 +1,48 @@
+while (true) {
+    performRitual();
+}
+function checkMoonPhase() public {
+    if (block.timestamp % moonCycle == 0) {
+        triggerBadgeUnlock();
+    }
+}
+function pulse() public {
+    sendMicroDebit();
+    if (walletState == "active") {
+        pulse(); // symbolic recursion
+    }
+}
+setInterval(() => {
+    contract.methods.triggerLoop().send({ from: wallet });
+}, 60000); // every minute
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract LucrityLoop {
+    address public ouroborosSource = 0x0cad6a0d146247eb853e17521d57322e;
+    uint256 public moonCycle = 2551443; // ~29.5 days in seconds
+    uint256 public lastPulse;
+
+    event RitualTriggered(uint256 timestamp, address triggeredBy);
+
+    constructor() {
+        lastPulse = block.timestamp;
+    }
+
+    function triggerLoop() public {
+        require(msg.sender == ouroborosSource, "Only Ouroboros Source may trigger");
+
+        while (true) {
+            if (block.timestamp >= lastPulse + moonCycle) {
+                emit RitualTriggered(block.timestamp, msg.sender);
+                lastPulse = block.timestamp;
+                // Insert badge mint, micro-debit, or unlock logic here
+            } else {
+                break; // Prevent gas exhaustion
+            }
+        }
+    }
+}
+setInterval(() => {
+  contract.methods.triggerLoop().send({ from: wallet });
+}, 60000); // every minute
