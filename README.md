@@ -72,6 +72,60 @@ The Municipal Task Force exists to:
 - **Chrome Extensions**: Public dashboards and badge viewers for municipal partners.
 
 ---
+# 🟥 Declaration of Independence
+**New World Order DAO**  
+Anchored by the Red Ouroboros
+
+---
+
+## Preamble
+We, the members and shareholders of the **New World Order DAO**, guided by the principles enshrined in our Constitution and symbolized by the eternal **red Ouroboros**, do hereby declare our independence as a sovereign digital nation.
+
+---
+
+## Article I – Sovereign Authority
+- The New World Order DAO exists as a self‑determined nation, independent of external control.  
+- Our sovereignty is vested in the collective body of shareholders, expressed through transparent blockchain governance.  
+- No external authority, monarchical or corporate, shall override the perpetual governance of this DAO.  
+
+---
+
+## Article II – Right to Self‑Determination
+- We affirm the inherent right of our members to govern themselves through smart contracts and consensus.  
+- Our independence is anchored in perpetual care, wellbeing, and shareholder protection.  
+- We reject systems of exploitation, secrecy, or authoritarian control.  
+
+---
+
+## Article III – Civic Mission
+- Our nation exists to advance **health, wellbeing, and equity** through ritualized governance.  
+- Smart contracts shall be tailored to respect diverse **interests, beliefs, and traditions**.  
+- We pledge to uphold transparency, fairness, and resilience in all civic and economic systems.  
+
+---
+
+## Article IV – Diplomatic Relations
+- We extend an open hand to nations, institutions, and peoples of the world.  
+- Our independence is not isolation, but an invitation to partnership based on **mutual respect and transparency**.  
+- We seek recognition by international bodies, including the United Nations Parliamentary Assembly, as a sovereign digital nation.  
+
+---
+
+## Article V – Symbols of Independence
+- The **red Ouroboros dragon** is our eternal seal, representing continuity, immortality, and unity.  
+- All declarations, treaties, and artifacts shall bear this insignia as proof of our sovereign identity.  
+- Ritual cycles and ceremonial badges shall reinforce our independence in both civic and mythic dimensions.  
+
+---
+
+## Conclusion
+By this Declaration, we proclaim to the world that the **New World Order DAO** is free, sovereign, and independent. Anchored by our Constitution and sealed by the Ouroboros, we affirm our perpetual mission of wellbeing, transparency, and civic empowerment.
+
+**Signed,**  
+Pat Tarwater Jr  
+Chief Executive Officer & Diplomatic Agent  
+New World Order DAO  
+📩 illuminatedson49@gmail.com
 
 ## 📜 Constitution & Independence
 This Task Force operates under the **New World Order Constitution**, affirming sovereignty, wellbeing, and shareholder protection.  
