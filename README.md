@@ -7,7 +7,7 @@ Forged under moon-phase logic and ritual cadence, this token pulses at 3:45 AM‚Ä
 ## üîÅ What is LUCR?
 
 - A looping smart contract designed to **ritualize civic engagement**
-- Micro-debit pulses ($0.57, $0.50) tied to **badge unlocks and moon-phase triggers**
+- Micro-debit pulses tied to **badge unlocks and moon-phase triggers**
 - Symbolic overlays using the **red Ouroboros dragon** in old Chinese style
 - Anchored to Ethereum wallet: `0cad6a0d-1462-47eb-853e-17521d57322e`
 - Public-facing tools include **Chrome extensions**, **badge viewers**, and **ritual dashboards**
