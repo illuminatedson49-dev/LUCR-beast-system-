@@ -71,66 +71,40 @@ The Municipal Task Force exists to:
 - **Badge System**: NFT badges tied to moon-phase logic and civic engagement.
 - **Chrome Extensions**: Public dashboards and badge viewers for municipal partners.
 
----// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 /**
  * @title NewWorldOrderDAO_DPS
- * @notice Implements DPS (Data Per Second) as an official metric of
- *         New World Order DAO, including rights and obligations for
- *         the DAO and its Partners.
+ * @notice
+ *  Implements DPS (Data Per Second) as an official metric of
+ *  New World Order DAO, including rights and obligations for
+ *  the DAO ("daoCouncil") and its recognized Partners.
+ *
+ *  Network: Ethereum Mainnet
  */
 contract NewWorldOrderDAO_DPS {
 
     // ------------------------------------------------------------------------
-    // Roles
+    // Core roles
     // ------------------------------------------------------------------------
 
-    address public daoCouncil; // core authority (can be multisig / governor)
+    /// @notice Authority representing New World Order DAO (can be a multisig or Governor contract)
+    address public daoCouncil;
 
-    mapping(address => bool) public isPartner; // registered partners
+    mapping(address => bool) public isPartner;
 
     modifier onlyDAO() {
-        require(msg.sender == daoCouncil, "Only DAO may call");
+        require(msg.sender == daoCouncil, "NewWorldOrderDAO_DPS: only DAO");
         _;
     }
 
     modifier onlyPartner() {
-        require(isPartner[msg.sender], "Only Partner may call");
+        require(isPartner[msg.sender], "NewWorldOrderDAO_DPS: only Partner");
         _;
     }
 
-    constructor(address _daoCouncil) {
-        daoCouncil = _daoCouncil;
-    }
-
-    // ------------------------------------------------------------------------
-    // DPS Core Definition
-    // ------------------------------------------------------------------------
-
-    /**
-     * @dev DPSRecord represents a single data packet within a one-second interval.
-     *      This reflects Section 5.3(b) — Structure of a DPS Record.
-     */
-    struct DPSRecord {
-        // data payload can be referenced by hash or external storage pointer (e.g., IPFS, Arweave)
-        bytes32 dataPayloadHash;
-        uint256 timestamp;              // time of data anchoring
-        bytes32 ethereumAnchorRef;      // tx / block / commitment
-        bytes32 verificationHash;       // hash used to confirm integrity
-        address partnerOfOrigin;        // registered partner address
-    }
-
-    // Partner => list of DPS records (perpetual care log)
-    mapping(address => DPSRecord[]) private partnerDPSRecords;
-
-    // Global log for auditability
-    DPSRecord[] private globalDPSLog;
-
-    // ------------------------------------------------------------------------
-    // Events (for transparency and auditing)
-    // ------------------------------------------------------------------------
-
+    event DaoCouncilUpdated(address indexed previousCouncil, address indexed newCouncil);
     event PartnerRegistered(address indexed partner);
     event PartnerRevoked(address indexed partner);
 
@@ -139,4 +113,344 @@ contract NewWorldOrderDAO_DPS {
         bytes32 indexed dataPayloadHash,
         uint256 timestamp,
         bytes32 ethereumAnchorRef,
-        bytes32 verification
+        bytes32 verificationHash
+    );
+
+    // ------------------------------------------------------------------------
+    // DPS core definition
+    // ------------------------------------------------------------------------
+
+    struct DPSRecord {
+        bytes32 dataPayloadHash;   // hash of payload (off-chain storage pointer)
+        uint256 timestamp;         // block.timestamp when recorded
+        bytes32 ethereumAnchorRef; // ref to Ethereum tx / block / commitment
+        bytes32 verificationHash;  // integrity hash
+        address partnerOfOrigin;   // registered partner
+    }
+
+    // Partner-scoped logs
+    mapping(address => DPSRecord[]) private partnerDPSRecords;
+
+    // Global log (for audits / explorers)
+    DPSRecord[] private globalDPSLog;
+
+    // ------------------------------------------------------------------------
+    // Constructor
+    // ------------------------------------------------------------------------
+
+    /**
+     * @param _daoCouncil Address of DAO authority (use a multisig or Governor on mainnet)
+     */
+    constructor(address _daoCouncil) {
+        require(_daoCouncil != address(0), "NewWorldOrderDAO_DPS: zero council");
+        daoCouncil = _daoCouncil;
+        emit DaoCouncilUpdated(address(0), _daoCouncil);
+    }
+
+    // ------------------------------------------------------------------------
+    // DAO governance: council management
+    // ------------------------------------------------------------------------
+
+    /**
+     * @notice Update the daoCouncil address.
+     * @dev Should be called by existing daoCouncil, which in turn is controlled by your DAO.
+     */
+    function setDaoCouncil(address _newCouncil) external onlyDAO {
+        require(_newCouncil != address(0), "NewWorldOrderDAO_DPS: zero council");
+        emit DaoCouncilUpdated(daoCouncil, _newCouncil);
+        daoCouncil = _newCouncil;
+    }
+
+    // ------------------------------------------------------------------------
+    // Partner registry (sovereign recognition)
+    // ------------------------------------------------------------------------
+
+    function registerPartner(address _partner) external onlyDAO {
+        require(_partner != address(0), "NewWorldOrderDAO_DPS: zero partner");
+        require(!isPartner[_partner], "NewWorldOrderDAO_DPS: already partner");
+        isPartner[_partner] = true;
+        emit PartnerRegistered(_partner);
+    }
+
+    function revokePartner(address _partner) external onlyDAO {
+        require(isPartner[_partner], "NewWorldOrderDAO_DPS: not partner");
+        isPartner[_partner] = false;
+        emit PartnerRevoked(_partner);
+    }
+
+    // ------------------------------------------------------------------------
+    // DPS recording (partner obligations)
+    // ------------------------------------------------------------------------
+
+    /**
+     * @notice Record a DPS entry for the calling Partner.
+     * @param _dataPayloadHash Hash of the data payload (e.g., IPFS / Arweave / off-chain record)
+     * @param _ethereumAnchorRef Reference to the Ethereum anchor (tx hash / block hash / commitment)
+     * @param _verificationHash Integrity hash representing any additional verification scheme
+     */
+    function recordDPS(
+        bytes32 _dataPayloadHash,
+        bytes32 _ethereumAnchorRef,
+        bytes32 _verificationHash
+    ) external onlyPartner {
+        DPSRecord memory rec = DPSRecord({
+            dataPayloadHash: _dataPayloadHash,
+            timestamp: block.timestamp,
+            ethereumAnchorRef: _ethereumAnchorRef,
+            verificationHash: _verificationHash,
+            partnerOfOrigin: msg.sender
+        });
+
+        partnerDPSRecords[msg.sender].push(rec);
+        globalDPSLog.push(rec);
+
+        emit DPSRecorded(
+            msg.sender,
+            _dataPayloadHash,
+            rec.timestamp,
+            _ethereumAnchorRef,
+            _verificationHash
+        );
+    }
+
+    // ------------------------------------------------------------------------
+    // Verification tools (DAO obligation: transparency & perpetual care)
+    // ------------------------------------------------------------------------
+
+    function getPartnerDPSCount(address _partner) external view returns (uint256) {
+        return partnerDPSRecords[_partner].length;
+    }
+
+    function getPartnerDPSRecord(address _partner, uint256 _index)
+        external
+        view
+        returns (DPSRecord memory)
+    {
+        require(_index < partnerDPSRecords[_partner].length, "NewWorldOrderDAO_DPS: index OOB");
+        return partnerDPSRecords[_partner][_index];
+    }
+
+    function getGlobalDPSCount() external view returns (uint256) {
+        return globalDPSLog.length;
+    }
+
+    function getGlobalDPSRecord(uint256 _index)
+        external
+        view
+        returns (DPSRecord memory)
+    {
+        require(_index < globalDPSLog.length, "NewWorldOrderDAO_DPS: index OOB");
+        return globalDPSLog[_index];
+    }
+
+    /**
+     * @notice Verify that a Partner's DPS record at _index matches the expected fields.
+     */
+    function verifyDPSRecord(
+        address _partner,
+        uint256 _index,
+        bytes32 _dataPayloadHash,
+        bytes32 _ethereumAnchorRef,
+        bytes32 _verificationHash
+    ) external view returns (bool) {
+        require(_index < partnerDPSRecords[_partner].length, "NewWorldOrderDAO_DPS: index OOB");
+        DPSRecord memory rec = partnerDPSRecords[_partner][_index];
+
+        return (
+            rec.dataPayloadHash == _dataPayloadHash &&
+            rec.ethereumAnchorRef == _ethereumAnchorRef &&
+            rec.verificationHash == _verificationHash &&
+            rec.partnerOfOrigin == _partner
+        // SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+/**
+ * @title NewWorldOrderDAO_DPS
+ * @notice
+ *  Implements DPS (Data Per Second) as an official metric of
+ *  New World Order DAO, including rights and obligations for
+ *  the DAO ("daoCouncil") and its recognized Partners.
+ *
+ *  Network: Ethereum Mainnet
+ */
+contract NewWorldOrderDAO_DPS {
+
+    // ------------------------------------------------------------------------
+    // Core roles
+    // ------------------------------------------------------------------------
+
+    /// @notice Authority representing New World Order DAO (can be a multisig or Governor contract)
+    address public daoCouncil;
+
+    mapping(address => bool) public isPartner;
+
+    modifier onlyDAO() {
+        require(msg.sender == daoCouncil, "NewWorldOrderDAO_DPS: only DAO");
+        _;
+    }
+
+    modifier onlyPartner() {
+        require(isPartner[msg.sender], "NewWorldOrderDAO_DPS: only Partner");
+        _;
+    }
+
+    event DaoCouncilUpdated(address indexed previousCouncil, address indexed newCouncil);
+    event PartnerRegistered(address indexed partner);
+    event PartnerRevoked(address indexed partner);
+
+    event DPSRecorded(
+        address indexed partner,
+        bytes32 indexed dataPayloadHash,
+        uint256 timestamp,
+        bytes32 ethereumAnchorRef,
+        bytes32 verificationHash
+    );
+
+    // ------------------------------------------------------------------------
+    // DPS core definition
+    // ------------------------------------------------------------------------
+
+    struct DPSRecord {
+        bytes32 dataPayloadHash;   // hash of payload (off-chain storage pointer)
+        uint256 timestamp;         // block.timestamp when recorded
+        bytes32 ethereumAnchorRef; // ref to Ethereum tx / block / commitment
+        bytes32 verificationHash;  // integrity hash
+        address partnerOfOrigin;   // registered partner
+    }
+
+    // Partner-scoped logs
+    mapping(address => DPSRecord[]) private partnerDPSRecords;
+
+    // Global log (for audits / explorers)
+    DPSRecord[] private globalDPSLog;
+
+    // ------------------------------------------------------------------------
+    // Constructor
+    // ------------------------------------------------------------------------
+
+    /**
+     * @param _daoCouncil Address of DAO authority (use a multisig or Governor on mainnet)
+     */
+    constructor(address _daoCouncil) {
+        require(_daoCouncil != address(0), "NewWorldOrderDAO_DPS: zero council");
+        daoCouncil = _daoCouncil;
+        emit DaoCouncilUpdated(address(0), _daoCouncil);
+    }
+
+    // ------------------------------------------------------------------------
+    // DAO governance: council management
+    // ------------------------------------------------------------------------
+
+    /**
+     * @notice Update the daoCouncil address.
+     * @dev Should be called by existing daoCouncil, which in turn is controlled by your DAO.
+     */
+    function setDaoCouncil(address _newCouncil) external onlyDAO {
+        require(_newCouncil != address(0), "NewWorldOrderDAO_DPS: zero council");
+        emit DaoCouncilUpdated(daoCouncil, _newCouncil);
+        daoCouncil = _newCouncil;
+    }
+
+    // ------------------------------------------------------------------------
+    // Partner registry (sovereign recognition)
+    // ------------------------------------------------------------------------
+
+    function registerPartner(address _partner) external onlyDAO {
+        require(_partner != address(0), "NewWorldOrderDAO_DPS: zero partner");
+        require(!isPartner[_partner], "NewWorldOrderDAO_DPS: already partner");
+        isPartner[_partner] = true;
+        emit PartnerRegistered(_partner);
+    }
+
+    function revokePartner(address _partner) external onlyDAO {
+        require(isPartner[_partner], "NewWorldOrderDAO_DPS: not partner");
+        isPartner[_partner] = false;
+        emit PartnerRevoked(_partner);
+    }
+
+    // ------------------------------------------------------------------------
+    // DPS recording (partner obligations)
+    // ------------------------------------------------------------------------
+
+    /**
+     * @notice Record a DPS entry for the calling Partner.
+     * @param _dataPayloadHash Hash of the data payload (e.g., IPFS / Arweave / off-chain record)
+     * @param _ethereumAnchorRef Reference to the Ethereum anchor (tx hash / block hash / commitment)
+     * @param _verificationHash Integrity hash representing any additional verification scheme
+     */
+    function recordDPS(
+        bytes32 _dataPayloadHash,
+        bytes32 _ethereumAnchorRef,
+        bytes32 _verificationHash
+    ) external onlyPartner {
+        DPSRecord memory rec = DPSRecord({
+            dataPayloadHash: _dataPayloadHash,
+            timestamp: block.timestamp,
+            ethereumAnchorRef: _ethereumAnchorRef,
+            verificationHash: _verificationHash,
+            partnerOfOrigin: msg.sender
+        });
+
+        partnerDPSRecords[msg.sender].push(rec);
+        globalDPSLog.push(rec);
+
+        emit DPSRecorded(
+            msg.sender,
+            _dataPayloadHash,
+            rec.timestamp,
+            _ethereumAnchorRef,
+            _verificationHash
+        );
+    }
+
+    // ------------------------------------------------------------------------
+    // Verification tools (DAO obligation: transparency & perpetual care)
+    // ------------------------------------------------------------------------
+
+    function getPartnerDPSCount(address _partner) external view returns (uint256) {
+        return partnerDPSRecords[_partner].length;
+    }
+
+    function getPartnerDPSRecord(address _partner, uint256 _index)
+        external
+        view
+        returns (DPSRecord memory)
+    {
+        require(_index < partnerDPSRecords[_partner].length, "NewWorldOrderDAO_DPS: index OOB");
+        return partnerDPSRecords[_partner][_index];
+    }
+
+    function getGlobalDPSCount() external view returns (uint256) {
+        return globalDPSLog.length;
+    }
+
+    function getGlobalDPSRecord(uint256 _index)
+        external
+        view
+        returns (DPSRecord memory)
+    {
+        require(_index < globalDPSLog.length, "NewWorldOrderDAO_DPS: index OOB");
+        return globalDPSLog[_index];
+    }
+
+    /**
+     * @notice Verify that a Partner's DPS record at _index matches the expected fields.
+     */
+    function verifyDPSRecord(
+        address _partner,
+        uint256 _index,
+        bytes32 _dataPayloadHash,
+        bytes32 _ethereumAnchorRef,
+        bytes32 _verificationHash
+    ) external view returns (bool) {
+        require(_index < partnerDPSRecords[_partner].length, "NewWorldOrderDAO_DPS: index OOB");
+        DPSRecord memory rec = partnerDPSRecords[_partner][_index];
+
+        return (
+            rec.dataPayloadHash == _dataPayloadHash &&
+            rec.ethereumAnchorRef == _ethereumAnchorRef &&
+            rec.verificationHash == _verificationHash &&
+            rec.partnerOfOrigin == _partner
+        );
+    }
+}
