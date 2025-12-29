@@ -71,4 +71,72 @@ The Municipal Task Force exists to:
 - **Badge System**: NFT badges tied to moon-phase logic and civic engagement.
 - **Chrome Extensions**: Public dashboards and badge viewers for municipal partners.
 
----
+---// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+/**
+ * @title NewWorldOrderDAO_DPS
+ * @notice Implements DPS (Data Per Second) as an official metric of
+ *         New World Order DAO, including rights and obligations for
+ *         the DAO and its Partners.
+ */
+contract NewWorldOrderDAO_DPS {
+
+    // ------------------------------------------------------------------------
+    // Roles
+    // ------------------------------------------------------------------------
+
+    address public daoCouncil; // core authority (can be multisig / governor)
+
+    mapping(address => bool) public isPartner; // registered partners
+
+    modifier onlyDAO() {
+        require(msg.sender == daoCouncil, "Only DAO may call");
+        _;
+    }
+
+    modifier onlyPartner() {
+        require(isPartner[msg.sender], "Only Partner may call");
+        _;
+    }
+
+    constructor(address _daoCouncil) {
+        daoCouncil = _daoCouncil;
+    }
+
+    // ------------------------------------------------------------------------
+    // DPS Core Definition
+    // ------------------------------------------------------------------------
+
+    /**
+     * @dev DPSRecord represents a single data packet within a one-second interval.
+     *      This reflects Section 5.3(b) — Structure of a DPS Record.
+     */
+    struct DPSRecord {
+        // data payload can be referenced by hash or external storage pointer (e.g., IPFS, Arweave)
+        bytes32 dataPayloadHash;
+        uint256 timestamp;              // time of data anchoring
+        bytes32 ethereumAnchorRef;      // tx / block / commitment
+        bytes32 verificationHash;       // hash used to confirm integrity
+        address partnerOfOrigin;        // registered partner address
+    }
+
+    // Partner => list of DPS records (perpetual care log)
+    mapping(address => DPSRecord[]) private partnerDPSRecords;
+
+    // Global log for auditability
+    DPSRecord[] private globalDPSLog;
+
+    // ------------------------------------------------------------------------
+    // Events (for transparency and auditing)
+    // ------------------------------------------------------------------------
+
+    event PartnerRegistered(address indexed partner);
+    event PartnerRevoked(address indexed partner);
+
+    event DPSRecorded(
+        address indexed partner,
+        bytes32 indexed dataPayloadHash,
+        uint256 timestamp,
+        bytes32 ethereumAnchorRef,
+        bytes32 verification
